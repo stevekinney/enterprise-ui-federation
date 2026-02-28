@@ -84,18 +84,20 @@ Both the host and remote use React. Without shared dependency configuration, eac
 
 ### What to Look At
 
-1. In both `rsbuild.config.ts` files, find the `shared` configuration:
+1. In both `rsbuild.config.ts` files, find the `shared` configuration. Both files set `singleton: true` and `eager: true` on all shared dependencies:
 
 ```typescript
 shared: {
   react: { singleton: true, eager: true },
   "react-dom": { singleton: true, eager: true },
-  // ...
+  nanostores: { singleton: true, eager: true },
+  "@nanostores/react": { singleton: true, eager: true },
+  "@pulse/shared": { singleton: true, eager: true },
 },
 ```
 
-- **`singleton: true`** — Only one copy of React loads, even if the host and remote declare different versions
-- **`eager: true`** (host only) — The host loads React immediately rather than waiting for the remote. The remote does *not* set `eager: true` because it relies on the host having already provided React
+- **`singleton: true`** — Only one copy of React loads, even if the host and remote declare different versions. When both the host and remote eagerly provide React, Module Federation deduplicates at runtime and picks the best version.
+- **`eager: true`** — Both sides load shared modules immediately. The remote also needs `eager: true` so it can run in standalone mode (at `localhost:3001`) without a host providing the shared modules.
 
 2. **Experiment:** Try temporarily removing `singleton: true` from the remote's React shared config, then reload. You may see React errors about multiple copies or hooks violations. Add it back.
 
@@ -139,7 +141,7 @@ export function AuthProvider({ children }) {
 }
 ```
 
-Now open `remote-analytics/src/analytics-dashboard.tsx`. Look at lines 14–16:
+Now open `remote-analytics/src/analytics-dashboard.tsx`. Look at lines 13–17:
 
 ```typescript
 // THE BUG: This component has no access to the host's auth context.
@@ -210,7 +212,15 @@ authStore.set({
 
 ### 4c: Read from the Store in the Remote
 
-Open `remote-analytics/src/analytics-dashboard.tsx`. Replace the hardcoded auth values with the nanostore.
+First, add `@nanostores/react` to the remote so it can use the React bindings. From the repo root:
+
+```bash
+pnpm --filter @pulse/remote-analytics add nanostores @nanostores/react
+```
+
+> **Why?** pnpm uses strict module isolation — each package can only import its own declared dependencies. Even though `@pulse/shared` already depends on nanostores, the remote needs its own dependency to resolve the import at build time. At runtime, Module Federation's singleton config ensures only one copy is loaded.
+
+Now open `remote-analytics/src/analytics-dashboard.tsx`. Replace the hardcoded auth values with the nanostore.
 
 Add these imports:
 
@@ -234,9 +244,17 @@ const userName = auth.user?.name ?? null;
 
 ### Why This Works
 
-`nanostores` is configured as a **singleton shared dependency** in both rsbuild configs. This means the host and remote share the exact same nanostore instance at runtime. When the host writes to `authStore`, the remote's `useStore(authStore)` hook sees the update immediately — because they're literally the same object in memory.
+Two things make this work:
 
-This is the key insight: **framework-agnostic state (nanostores, BroadcastChannel, custom events) crosses boundaries that framework-specific state (React Context) cannot.**
+1. **`@pulse/shared` is a singleton shared dependency** in both rsbuild configs. This means the host and remote share the exact same module instance of `@pulse/shared` at runtime — so the `authStore` atom created by `atom(...)` in `auth-store.ts` is the same object in both the host and the remote.
+
+2. **`nanostores` and `@nanostores/react` are also singleton shared dependencies.** This ensures the store library and its React bindings are the same instance on both sides, so `useStore()` in the remote subscribes to the same atom the host writes to.
+
+When the host calls `authStore.set(...)`, the remote's `useStore(authStore)` hook sees the update immediately — because they're literally the same object in memory.
+
+> **If the badge still says "Not authenticated"** after making these changes, check that `@pulse/shared` is listed in the `shared` config in both `rsbuild.config.ts` files. Without it, each side bundles its own copy of `@pulse/shared` and creates separate atom instances — the host writes to one atom while the remote reads from a different one.
+
+This is the key insight: **framework-agnostic state (nanostores, BroadcastChannel, custom events) crosses boundaries that framework-specific state (React Context) cannot** — but only if the module that creates the state is shared across both sides.
 
 ### Checkpoint
 
