@@ -76,6 +76,8 @@ The host loads the remote's component lazily at runtime — it's not bundled int
 
 You should see the analytics dashboard loading inside the host shell. The sidebar shows "Grace Hopper / admin" and the main area shows the analytics view with stat cards and a chart. In the Network tab, you can see `mf-manifest.json` and chunk files coming from `localhost:3001`.
 
+> **You'll also notice an amber "Not authenticated" badge** in the analytics dashboard header — even though the sidebar shows a logged-in user. This is intentional. It's the bug you'll investigate in Step 3 and fix in Step 4.
+
 ---
 
 ## Step 2: Shared Dependency Negotiation
@@ -101,23 +103,26 @@ shared: {
 
 > **Note:** You'll see `@nanostores/react` listed in the remote's shared config even though it isn't in the remote's `package.json` yet. It's pre-configured here so federation deduplication is already in place for when you install it in Step 4c.
 
-2. **Experiment:** Try temporarily removing `singleton: true` from the remote's React shared config, then reload. You may see React errors about multiple copies or hooks violations. **Restore `singleton: true` before continuing.**
+2. **Experiment:** Try temporarily removing `singleton: true` from the remote's React shared config, then reload `http://localhost:3000`. You'll likely see *no change* — the host's `singleton: true` declaration takes precedence at the Module Federation runtime level, so the remote's non-singleton declaration is overridden. To actually see multiple React copies load (and the hooks violations they cause), you'd need to remove `singleton: true` from *both* configs simultaneously. **Restore `singleton: true` before continuing.**
 
-3. **Experiment:** Add `requiredVersion` and `strictVersion` to see what happens when versions conflict:
+3. **Experiment:** Add `requiredVersion` and `strictVersion` to your existing React entry in the remote's `rsbuild.config.ts`. Keep `singleton: true` and `eager: true` in place — only add the two new fields:
 
 ```typescript
 react: {
   singleton: true,
-  requiredVersion: "^18.0.0",
+  eager: true,
+  requiredVersion: "^19.0.0",
   strictVersion: true,
 },
 ```
 
-With `strictVersion: true`, Module Federation throws an error if the provided version doesn't satisfy `requiredVersion`. This is how you catch version drift between independently deployed remotes. **Remove both fields before continuing.**
+With `strictVersion: true`, Module Federation throws an error if the provided version doesn't satisfy `requiredVersion`. Using `"^19.0.0"` here will trigger the error because this project uses React 18 — try reloading `http://localhost:3001`. This is how you catch version drift between independently deployed remotes. **Remove both fields and restore the original config before continuing.**
 
 ### Checkpoint
 
-Console should be clean — no shared module warnings. Only one copy of React is loaded. If you have React DevTools installed, you'll see a single React tree spanning both host and remote components.
+Console should be clean — no shared module errors. Only one copy of React is loaded. If you have React DevTools installed, you'll see a single React tree spanning both host and remote components.
+
+> **Note on `[Federation Runtime] Warn` messages:** You'll see these in the console throughout the exercise. They appear whenever a shared dependency is configured without an explicit `requiredVersion` (which is the case for most entries in our shared config). They are not errors — just informational warnings from the Module Federation runtime about version negotiation. You can safely ignore them.
 
 ---
 
@@ -184,11 +189,9 @@ export const authStore = atom<AuthContext>({
 });
 ```
 
-Then add the export to `shared/src/index.ts`:
+Then add the following export to `shared/src/index.ts`:
 
 ```typescript
-export * from "./types";
-export * from "./auth";
 export * from "./auth-store";
 ```
 
@@ -234,10 +237,13 @@ import { useStore } from "@nanostores/react";
 import { authStore } from "@pulse/shared";
 ```
 
-Inside the component, replace the hardcoded lines:
+Inside the component, replace the hardcoded lines. Remove the entire `// THE BUG` comment block and the two `const` lines below it:
 
 ```typescript
-// Remove these:
+// Remove all of this:
+// // THE BUG: This component has no access to the host's auth context.
+// // It cannot read the current user or auth token.
+// // On the main branch, this is intentionally broken.
 // const isAuthenticated = false;
 // const userName: string | null = null;
 
