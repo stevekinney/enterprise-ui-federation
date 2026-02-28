@@ -17,8 +17,9 @@ export default defineConfig({
       shared: {
         react: { singleton: true, eager: true },
         "react-dom": { singleton: true, eager: true },
-        nanostores: { singleton: true },
-        "@nanostores/react": { singleton: true },
+        nanostores: { singleton: true, eager: true },
+        "@nanostores/react": { singleton: true, eager: true },
+        "@pulse/shared": { singleton: true, eager: true },
       },
     }),
   ],
