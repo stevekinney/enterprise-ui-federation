@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type { SummaryStats, ChartDataPoint, TimeRange } from "@pulse/shared";
 import { StatsBar } from "./stats-bar";
 import { Chart } from "./chart";
+import "./index.css";
 
 export function AnalyticsDashboard(): React.ReactElement {
   const [summary, setSummary] = useState<SummaryStats | null>(null);

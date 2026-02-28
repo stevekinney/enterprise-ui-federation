@@ -239,7 +239,7 @@ A single mock user for the auth context:
 ```typescript
 export const currentUser: User = {
   id: "usr_01",
-  name: "Alex Rivera",
+  name: "Grace Hopper",
   email: "alex@pulse.dev",
   role: "admin",
 };
@@ -440,7 +440,7 @@ the current user. The API calls go out without an auth token.
 [Step-by-step implementation of nanostores-based solution]
 
 ### Checkpoint
-The analytics dashboard now shows "Viewing as: Alex Rivera (admin)" and
+The analytics dashboard now shows "Viewing as: Grace Hopper (admin)" and
 API calls include the auth token.
 
 ## Stretch Goals

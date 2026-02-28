@@ -74,7 +74,7 @@ The host loads the remote's component lazily at runtime — it's not bundled int
 
 ### Checkpoint
 
-You should see the analytics dashboard loading inside the host shell. The sidebar shows "Alex Rivera / admin" and the main area shows the analytics view with stat cards and a chart. In the Network tab, you can see `mf-manifest.json` and chunk files coming from `localhost:3001`.
+You should see the analytics dashboard loading inside the host shell. The sidebar shows "Grace Hopper / admin" and the main area shows the analytics view with stat cards and a chart. In the Network tab, you can see `mf-manifest.json` and chunk files coming from `localhost:3001`.
 
 ---
 
@@ -123,7 +123,7 @@ Now look at the analytics dashboard more carefully. Something is wrong.
 
 ### Spot the Bug
 
-1. Look at the **sidebar navigation** — it shows "Alex Rivera" with role "admin". The host has auth data.
+1. Look at the **sidebar navigation** — it shows "Grace Hopper" with role "admin". The host has auth data.
 2. Look at the **analytics dashboard** header — it shows an amber **"Not authenticated"** badge. The remote does *not* have auth data.
 
 ### Why This Happens
@@ -240,7 +240,7 @@ This is the key insight: **framework-agnostic state (nanostores, BroadcastChanne
 
 ### Checkpoint
 
-The analytics dashboard now shows a green **"Viewing as: Alex Rivera"** badge instead of the amber "Not authenticated" badge. The auth context flows from the host to the remote through the shared nanostore.
+The analytics dashboard now shows a green **"Viewing as: Grace Hopper"** badge instead of the amber "Not authenticated" badge. The auth context flows from the host to the remote through the shared nanostore.
 
 ---
 
