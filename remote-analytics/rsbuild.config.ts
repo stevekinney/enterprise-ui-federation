@@ -10,6 +10,7 @@ export default defineConfig({
     pluginReact(),
     pluginModuleFederation({
       name: "remoteAnalytics",
+      dts: false,
       exposes: {
         "./analytics-dashboard": "./src/analytics-dashboard",
       },

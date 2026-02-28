@@ -17,7 +17,7 @@ Runtime microfrontends give teams independent builds and deploys — but they co
 
 ```bash
 git clone <repo-url>
-cd pulse-federation
+cd enterprise-ui-federation
 pnpm install
 pnpm dev
 ```
@@ -99,7 +99,9 @@ shared: {
 - **`singleton: true`** — Only one copy of React loads, even if the host and remote declare different versions. When both the host and remote eagerly provide React, Module Federation deduplicates at runtime and picks the best version.
 - **`eager: true`** — Both sides load shared modules immediately. The remote also needs `eager: true` so it can run in standalone mode (at `localhost:3001`) without a host providing the shared modules.
 
-2. **Experiment:** Try temporarily removing `singleton: true` from the remote's React shared config, then reload. You may see React errors about multiple copies or hooks violations. Add it back.
+> **Note:** You'll see `@nanostores/react` listed in the remote's shared config even though it isn't in the remote's `package.json` yet. It's pre-configured here so federation deduplication is already in place for when you install it in Step 4c.
+
+2. **Experiment:** Try temporarily removing `singleton: true` from the remote's React shared config, then reload. You may see React errors about multiple copies or hooks violations. **Restore `singleton: true` before continuing.**
 
 3. **Experiment:** Add `requiredVersion` and `strictVersion` to see what happens when versions conflict:
 
@@ -111,7 +113,7 @@ react: {
 },
 ```
 
-With `strictVersion: true`, Module Federation throws an error if the provided version doesn't satisfy `requiredVersion`. This is how you catch version drift between independently deployed remotes.
+With `strictVersion: true`, Module Federation throws an error if the provided version doesn't satisfy `requiredVersion`. This is how you catch version drift between independently deployed remotes. **Remove both fields before continuing.**
 
 ### Checkpoint
 
@@ -141,10 +143,12 @@ export function AuthProvider({ children }) {
 }
 ```
 
-Now open `remote-analytics/src/analytics-dashboard.tsx`. Look at lines 13–17:
+Now open `remote-analytics/src/analytics-dashboard.tsx`. Find the hardcoded auth values near the top of the component:
 
 ```typescript
 // THE BUG: This component has no access to the host's auth context.
+// It cannot read the current user or auth token.
+// On the main branch, this is intentionally broken.
 const isAuthenticated = false;
 const userName: string | null = null;
 ```
@@ -192,9 +196,10 @@ export * from "./auth-store";
 
 Open `host/src/shell/auth-provider.tsx`. Import the store and update it when auth state changes.
 
-Add this import at the top:
+Add a second import from `@pulse/shared` — keep it separate from the existing type-only import, since this one is a runtime value:
 
 ```typescript
+import type { User, AuthContext as AuthContextType } from "@pulse/shared";
 import { authStore } from "@pulse/shared";
 ```
 
@@ -215,10 +220,10 @@ authStore.set({
 First, add `@nanostores/react` to the remote so it can use the React bindings. From the repo root:
 
 ```bash
-pnpm --filter @pulse/remote-analytics add nanostores @nanostores/react
+pnpm --filter @pulse/remote-analytics add @nanostores/react
 ```
 
-> **Why?** pnpm uses strict module isolation — each package can only import its own declared dependencies. Even though `@pulse/shared` already depends on nanostores, the remote needs its own dependency to resolve the import at build time. At runtime, Module Federation's singleton config ensures only one copy is loaded.
+> **Why?** pnpm uses strict module isolation — each package can only import its own declared dependencies. Even though `@pulse/shared` already depends on `@nanostores/react`, the remote needs its own declaration to resolve the import at build time. At runtime, Module Federation's singleton config ensures only one copy is loaded.
 
 Now open `remote-analytics/src/analytics-dashboard.tsx`. Replace the hardcoded auth values with the nanostore.
 
