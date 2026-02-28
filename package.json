@@ -1,0 +1,23 @@
+{
+  "name": "pulse-federation",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "postinstall": "msw init host/public --save && msw init remote-analytics/public --save"
+  },
+  "devDependencies": {
+    "msw": "^2.4"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "msw": {
+    "workerDirectory": [
+      "host/public",
+      "remote-analytics/public"
+    ]
+  }
+}

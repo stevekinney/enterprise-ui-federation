@@ -1,0 +1,28 @@
+import { defineConfig } from "@rsbuild/core";
+import { pluginReact } from "@rsbuild/plugin-react";
+import { pluginModuleFederation } from "@module-federation/rsbuild-plugin";
+
+export default defineConfig({
+  server: {
+    port: 3000,
+  },
+  plugins: [
+    pluginReact(),
+    pluginModuleFederation({
+      name: "host",
+      remotes: {
+        remoteAnalytics:
+          "remoteAnalytics@http://localhost:3001/mf-manifest.json",
+      },
+      shared: {
+        react: { singleton: true, eager: true },
+        "react-dom": { singleton: true, eager: true },
+        nanostores: { singleton: true },
+        "@nanostores/react": { singleton: true },
+      },
+    }),
+  ],
+  html: {
+    template: "./src/index.html",
+  },
+});

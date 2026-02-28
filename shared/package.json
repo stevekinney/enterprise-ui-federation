@@ -1,0 +1,21 @@
+{
+  "name": "@pulse/shared",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "nanostores": "^0.11",
+    "@nanostores/react": "^0.8"
+  },
+  "peerDependencies": {
+    "react": "^18.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.5",
+    "@types/react": "^18"
+  }
+}

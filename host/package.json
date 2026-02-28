@@ -1,0 +1,27 @@
+{
+  "name": "@pulse/host",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3",
+    "react-dom": "^18.3",
+    "@pulse/shared": "workspace:*",
+    "@pulse/mocks": "workspace:*"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^1.0",
+    "@rsbuild/plugin-react": "^1.0",
+    "@module-federation/rsbuild-plugin": "^0.8",
+    "tailwindcss": "^4.0",
+    "@tailwindcss/postcss": "^4.0",
+    "typescript": "^5.5",
+    "@types/react": "^18",
+    "@types/react-dom": "^18"
+  }
+}
