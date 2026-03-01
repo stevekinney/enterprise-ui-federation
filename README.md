@@ -143,7 +143,7 @@ shared: {
 With `strictVersion: true`, Module Federation throws an error if the provided version doesn't satisfy `requiredVersion`. Using `"^19.0.0"` here will trigger the error because this project uses React 18 — reload `http://localhost:3001`. The page will go **blank** (React never starts), and you'll see the version mismatch in **DevTools → Console**:
 
 ```
-Error: [ Federation Runtime ]: Version 18.3.1 from remoteAnalytics doesn't satisfy ^19.0.0
+Error: [ Federation Runtime ]: Version 18.3.1 from remoteAnalytics of shared singleton module react does not satisfy the requirement of remoteAnalytics which needs ^19.0.0)
 ```
 
 This is intentional — the remote rejected the available React version before any UI could render. This is how you catch version drift between independently deployed remotes. **Remove both fields and restore the original config before continuing.**
@@ -152,7 +152,7 @@ This is intentional — the remote rejected the available React version before a
 
 Console should be clean — no shared module errors. Only one copy of React is loaded. If you have React DevTools installed, you'll see a single React tree spanning both host and remote components.
 
-> **Note on `[Federation Runtime] Warn` messages:** You'll see these in the console throughout the exercise. They appear whenever a shared dependency is configured without an explicit `requiredVersion` (which is the case for most entries in our shared config). They are not errors — just informational warnings from the Module Federation runtime about version negotiation. You can safely ignore them.
+> **Note on `[Federation Runtime] Warn` messages:** You may see these in the console throughout the exercise. They appear whenever a shared dependency is configured without an explicit `requiredVersion` (which is the case for most entries in our shared config). They are not errors — just informational messages from the Module Federation runtime about version negotiation. You can safely ignore them.
 
 ---
 
