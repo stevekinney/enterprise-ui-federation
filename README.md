@@ -16,8 +16,6 @@ Runtime microfrontends give teams independent builds and deploys — but they co
 ## Setup
 
 ```bash
-git clone <repo-url>
-cd enterprise-ui-federation
 pnpm install
 pnpm dev
 ```
@@ -39,7 +37,7 @@ Start by seeing the running application, then understand how Module Federation c
 
 You should see the analytics dashboard loading inside the host shell. The sidebar shows **"Grace Hopper"** with **"admin"** below it in gray text, and the main area shows the analytics view with stat cards and a chart. In the Network tab, you can see `mf-manifest.json` and chunk files coming from `localhost:3001`.
 
-![The host shell with the analytics dashboard loaded. The sidebar shows "Grace Hopper" with role "admin", and the analytics dashboard displays stat cards and a chart. Note the amber "Not authenticated" badge in the top-right corner.](assets/step-1-initial-app.png)
+![Host shell showing the Not authenticated badge](assets/step-1-initial-app.png)
 
 > **You'll also notice an amber "Not authenticated" badge** in the analytics dashboard header — even though the sidebar shows a logged-in user. This is intentional. It's the bug you'll investigate in Step 3 and fix in Step 4.
 
@@ -114,7 +112,7 @@ shared: {
 
 - **`eager: true`** — Both sides load shared modules immediately. Without `eager: true`, a remote expects the *host* to provide shared modules like React at runtime. That works when loaded through a host, but means the remote can't boot on its own — it has nowhere to get React from. `eager: true` bundles React directly into the remote's output as a self-contained fallback. The federation runtime still deduplicates at runtime when the host is present, so you won't end up with two React copies in production; `eager` just ensures standalone mode (`localhost:3001`) stays functional.
 
-> **Note:** You'll see `@nanostores/react` listed in the remote's shared config even though it isn't in the remote's `package.json` yet. It's pre-configured here so federation deduplication is already in place for when you install it in Step 4c.
+> **Note:** `@nanostores/react` appears in the remote's shared config even though it isn't in the remote's `package.json` yet — this is intentional. It's pre-configured so that when you install the package in Step 4c, federation deduplication is already in place. You won't need to touch the config later.
 
 2. **Experiment:** Add `requiredVersion` and `strictVersion` to your existing React entry in the remote's `rsbuild.config.ts`. Keep `singleton: true` and `eager: true` in place — only add the two new fields:
 
@@ -130,7 +128,7 @@ shared: {
 },
 ```
 
-With `strictVersion: true`, Module Federation throws an error if the provided version doesn't satisfy `requiredVersion`. Using `"^19.0.0"` here will trigger the error because this project uses React 18 — reload `http://localhost:3001`. The page will go **blank** (React never starts), and you'll see the version mismatch in **DevTools → Console**:
+With `strictVersion: true`, Module Federation throws an error if the provided version doesn't satisfy `requiredVersion`. Using `"^19.0.0"` here will trigger the error because this project uses React 18. Stop your dev servers (`Ctrl+C`), run `pnpm dev` again, then open `http://localhost:3001`. The page will go **blank** (React never starts), and you'll see the version mismatch in **DevTools → Console**:
 
 ```
 Error: [ Federation Runtime ]: Version 18.3.1 from remoteAnalytics of shared singleton module react does not satisfy the requirement of remoteAnalytics which needs ^19.0.0)
@@ -138,9 +136,9 @@ Error: [ Federation Runtime ]: Version 18.3.1 from remoteAnalytics of shared sin
 
 This is intentional — the remote rejected the available React version before any UI could render. This is how you catch version drift between independently deployed remotes.
 
-![Blank page with the Federation Runtime error in the console: the version mismatch prevented React from loading.](assets/step-2-strict-version-error.png)
+![Blank page after version mismatch error](assets/step-2-strict-version-error.png)
 
-**Remove both fields and restore the original config before continuing.**
+**Remove both fields and restore the original config before continuing.** Stop your dev servers and run `pnpm dev` again to pick up the reverted config.
 
 ### Checkpoint
 
@@ -256,7 +254,7 @@ try {
 
 ### 4c: Read from the Store in the Remote
 
-First, add `@nanostores/react` to the remote so it can use the React bindings. From the repo root:
+First, add `@nanostores/react` to the remote so it can use the React bindings. In a separate terminal (not the one running `pnpm dev`), run from the repo root:
 
 ```bash
 pnpm --filter @pulse/remote-analytics add @nanostores/react
@@ -308,11 +306,13 @@ When the host calls `authStore.set(...)`, the remote's `useStore(authStore)` hoo
 
 This is the key insight: **framework-agnostic state (nanostores, BroadcastChannel, custom events) crosses boundaries that framework-specific state (React Context) cannot** — but only if the module that creates the state is shared across both sides.
 
+Stop your dev servers (`Ctrl+C`) and run `pnpm dev` again to pick up the new file, the new export, and the newly installed dependency. Then open [http://localhost:3000](http://localhost:3000).
+
 ### Checkpoint
 
 The analytics dashboard now shows a green **"Viewing as: Grace Hopper"** badge instead of the amber "Not authenticated" badge. The auth context flows from the host to the remote through the shared nanostore.
 
-![The fixed application. The amber "Not authenticated" badge has been replaced by a green "Viewing as: Grace Hopper" badge — auth context now flows from host to remote through the shared nanostore.](assets/step-4-fixed-auth.png)
+![Fixed application showing Viewing as Grace Hopper](assets/step-4-fixed-auth.png)
 
 ---
 
@@ -322,7 +322,7 @@ The analytics dashboard now shows a green **"Viewing as: Grace Hopper"** badge i
 - **Error boundary testing:** Stop the remote dev server (`Ctrl+C` in its terminal) and reload the host. The `ErrorBoundary` component in `host/src/shell/error-boundary.tsx` catches the failed remote load and shows the fallback: "Failed to load Analytics. Make sure the remote is running on port 3001."
 - **Standalone remote:** Visit [http://localhost:3001](http://localhost:3001) directly. The analytics dashboard works independently with its own MSW mock data (defined in `mocks/`) — it doesn't need the host at all. Notice it shows "Not authenticated" in standalone mode since there's no host to write to `authStore`.
 
-  ![The remote running in standalone mode at localhost:3001. It renders the full analytics dashboard using its own MSW mock data, with "Not authenticated" since no host is providing auth context.](assets/standalone-remote.png)
+  ![Remote running in standalone mode](assets/standalone-remote.png)
 
 ---
 
@@ -338,4 +338,4 @@ git checkout solution
 
 ## What's Next
 
-You've felt the operational overhead of runtime composition: two dev servers, remote entry manifests, shared dependency negotiation, cross-boundary state management. In the next exercise, you'll take this same analytics module and consume it as a regular package in a monorepo — no federation, no remote entry, no shared dependency negotiation. Same product, radically simpler architecture.
+You've felt the operational overhead of runtime composition: two dev servers, remote entry manifests, shared dependency negotiation, cross-boundary state management. The natural follow-up question is: what if you consumed this same analytics module as a regular package in a monorepo — no federation, no remote entry, no shared dependency negotiation? Same product, radically simpler architecture. That's the trade-off build-time composition explores.
