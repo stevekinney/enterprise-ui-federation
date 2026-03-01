@@ -39,6 +39,8 @@ Start by seeing the running application, then understand how Module Federation c
 
 You should see the analytics dashboard loading inside the host shell. The sidebar shows **"Grace Hopper"** with **"admin"** below it in gray text, and the main area shows the analytics view with stat cards and a chart. In the Network tab, you can see `mf-manifest.json` and chunk files coming from `localhost:3001`.
 
+![The host shell with the analytics dashboard loaded. The sidebar shows "Grace Hopper" with role "admin", and the analytics dashboard displays stat cards and a chart. Note the amber "Not authenticated" badge in the top-right corner.](assets/step-1-initial-app.png)
+
 > **You'll also notice an amber "Not authenticated" badge** in the analytics dashboard header — even though the sidebar shows a logged-in user. This is intentional. It's the bug you'll investigate in Step 3 and fix in Step 4.
 
 Now let's look at the configuration that makes this work.
@@ -134,7 +136,11 @@ With `strictVersion: true`, Module Federation throws an error if the provided ve
 Error: [ Federation Runtime ]: Version 18.3.1 from remoteAnalytics of shared singleton module react does not satisfy the requirement of remoteAnalytics which needs ^19.0.0)
 ```
 
-This is intentional — the remote rejected the available React version before any UI could render. This is how you catch version drift between independently deployed remotes. **Remove both fields and restore the original config before continuing.**
+This is intentional — the remote rejected the available React version before any UI could render. This is how you catch version drift between independently deployed remotes.
+
+![Blank page with the Federation Runtime error in the console: the version mismatch prevented React from loading.](assets/step-2-strict-version-error.png)
+
+**Remove both fields and restore the original config before continuing.**
 
 ### Checkpoint
 
@@ -306,6 +312,8 @@ This is the key insight: **framework-agnostic state (nanostores, BroadcastChanne
 
 The analytics dashboard now shows a green **"Viewing as: Grace Hopper"** badge instead of the amber "Not authenticated" badge. The auth context flows from the host to the remote through the shared nanostore.
 
+![The fixed application. The amber "Not authenticated" badge has been replaced by a green "Viewing as: Grace Hopper" badge — auth context now flows from host to remote through the shared nanostore.](assets/step-4-fixed-auth.png)
+
 ---
 
 ## Stretch Goals
@@ -313,6 +321,8 @@ The analytics dashboard now shows a green **"Viewing as: Grace Hopper"** badge i
 - **BroadcastChannel alternative:** Implement the same cross-boundary communication using the browser's `BroadcastChannel` API instead of nanostores. Look at `shared/src/auth.ts` — it already defines `AUTH_CHANNEL` and an `AuthEvent` interface as a starting point. BroadcastChannel works across browser tabs too, not just federation boundaries.
 - **Error boundary testing:** Stop the remote dev server (`Ctrl+C` in its terminal) and reload the host. The `ErrorBoundary` component in `host/src/shell/error-boundary.tsx` catches the failed remote load and shows the fallback: "Failed to load Analytics. Make sure the remote is running on port 3001."
 - **Standalone remote:** Visit [http://localhost:3001](http://localhost:3001) directly. The analytics dashboard works independently with its own MSW mock data (defined in `mocks/`) — it doesn't need the host at all. Notice it shows "Not authenticated" in standalone mode since there's no host to write to `authStore`.
+
+  ![The remote running in standalone mode at localhost:3001. It renders the full analytics dashboard using its own MSW mock data, with "Not authenticated" since no host is providing auth context.](assets/standalone-remote.png)
 
 ---
 
